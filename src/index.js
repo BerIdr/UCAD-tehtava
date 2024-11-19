@@ -1,35 +1,41 @@
-import http from "http";
-
+import express from "express";
+import {
+  getMediaItems,
+  postMediaItem,
+  getMediaItemsById,
+  mediaItems,
+} from "./media.js";
 const hostname = "127.0.0.1";
 const port = 3000;
+const app = express();
 
-const server = http.createServer((req, res) => {
-  if (req.method === "GET" && req.url === "/items") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify([
-        { id: 1, name: "Item1" },
-        { id: 2, name: "Item2" },
-      ]),
-    );
-  } else if (req.method === "GET" && req.url === "/items/1") {
-    res.writeHead(201, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ id: 1, name: "Item1" }));
-  } else if (req.method === "POST" && req.url === "/items") {
-    res.writeHead(201, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ id: 3, name: "New Item" }));
-  } else if (req.method === "PUT" && req.url.startsWith("/items")) {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ id: 1, name: "Updated Item" }));
-  } else if (req.method === "DELETE" && req.url.startsWith("/items")) {
-    res.writeHead(204);
-    res.end();
-  } else {
-    res.writeHead(404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Not Found" }));
-  }
+app.set("view engine", "pug");
+app.set("views", "./src/views");
+
+app.use(express.json());
+app.use(express.static("public"));
+app.use("/media", express.static("media"));
+
+app.get("/api", (req, res) => {
+  res.render("index", {
+    title: "Media API",
+    message: "Welcome to the Media API",
+    exampleData: mediaItems,
+  });
 });
 
-server.listen(port, hostname, () => {
+app.get("/api/media", (req, res) => {
+  getMediaItems(res);
+});
+
+app.get("/api/media/:media_id", (req, res) => {
+  getMediaItemsById(req, res);
+});
+
+app.post("/api/media", (req, res) => {
+  postMediaItem(req, res);
+});
+
+app.listen(port, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });
