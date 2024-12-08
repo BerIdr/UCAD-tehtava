@@ -25,18 +25,30 @@ const fetchUserById = async (id) => {
 
 const addUser = async (newUser) => {
   const hashedPassword = await bcrypt.hash(newUser.password, 10);
+
+  // Tarkista, onko email tai username jo tietokannassa
+  const checkSql = 'SELECT * FROM Users WHERE username = ? OR email = ?';
+  const checkParams = [newUser.username, newUser.email];
+  const [existingUsers] = await promisePool.query(checkSql, checkParams);
+
+  if (existingUsers.length > 0) {
+    throw new Error('Username or email already exists');
+  }
+
   const sql = `INSERT INTO Users
                 (username, email, password, created_at)
                 VALUES (?, ?, ?, ?)`;
   const params = [newUser.username, newUser.email, hashedPassword, newUser.created_at];
   try {
     const result = await promisePool.query(sql, params);
+    console.log('User added:', result);
     return result[0].insertId;
   } catch (error) {
-    console.error('addUser', error.message);
+    console.error('addUser error:', error.message);
     throw new Error('Something went wrong with the database');
   }
 };
+
 
 const updateUser = async (id, updatedUser) => {
   const sql = `UPDATE Users SET username = ?, email = ? WHERE user_id = ?`;

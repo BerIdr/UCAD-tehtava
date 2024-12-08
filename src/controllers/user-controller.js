@@ -34,27 +34,25 @@ const getUserById = async (req, res) => {
   }
 };
 
-const postUser = async (req, res) => {
-  const {username, email, password} = req.body;
-  if (!username || !email || !password) {
-    return res
-      .status(400)
-      .json({message: 'Username, email, and password required'});
-  }
+const postUser = async (req, res, next) => {
+  const { username, email, password } = req.body;
+
   try {
     const id = await addUser({
       username,
       email,
       password,
       created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-
     });
-    res.status(201).json({message: 'User added', id});
-  } catch (e) {
-    console.error('postUser', e.message);
-    res.status(400).json({message: 'Something went wrong: ' + e.message});
+    res.status(201).json({ message: 'User added', id });
+  } catch (error) {
+    console.error('postUser Error:', error.message);
+    next(error); // Käytä error-handleria
   }
+  console.log('postUser called with:', req.body);
+
 };
+
 
 const putUser = async (req, res) => {
   const id = parseInt(req.params.id, 10);
