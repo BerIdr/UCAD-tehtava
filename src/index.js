@@ -1,41 +1,35 @@
-import express from "express";
-import {
-  getMediaItems,
-  postMediaItem,
-  getMediaItemsById,
-  mediaItems,
-} from "./media.js";
-const hostname = "127.0.0.1";
-const port = 3000;
+import express from 'express';
+import commentsRouter from './routes/comments-router.js';
+import likesRouter from './routes/likes-router.js';
+import mediaRouter from './routes/media-router.js';
+import ratingsRouter from './routes/ratings-router.js';
+import userRouter from './routes/user-router.js';
+import 'dotenv/config';
+
 const app = express();
+const port = process.env.PORT || 3000;
 
-app.set("view engine", "pug");
-app.set("views", "./src/views");
-
+// Middleware
 app.use(express.json());
-app.use(express.static("public"));
-app.use("/media", express.static("media"));
+app.use(express.urlencoded({ extended: true }));
 
-app.get("/api", (req, res) => {
-  res.render("index", {
-    title: "Media API",
-    message: "Welcome to the Media API",
-    exampleData: mediaItems,
-  });
+// Serve uploaded files statically
+app.use('/uploads', express.static('uploads'));
+
+// Routes
+app.use('/api/comments', commentsRouter);
+app.use('/api/likes', likesRouter);
+app.use('/api/media', mediaRouter);
+app.use('/api/ratings', ratingsRouter);
+app.use('/api/users', userRouter);
+
+// Error handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
-app.get("/api/media", (req, res) => {
-  getMediaItems(res);
-});
-
-app.get("/api/media/:media_id", (req, res) => {
-  getMediaItemsById(req, res);
-});
-
-app.post("/api/media", (req, res) => {
-  postMediaItem(req, res);
-});
-
+// Start the server
 app.listen(port, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+  console.log(`Server running at http://localhost:${port}`);
 });
