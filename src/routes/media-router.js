@@ -7,16 +7,20 @@ import {
   putItem,
   deleteItem,
 } from '../controllers/media-controller.js';
+import { verifyMediaOwnership } from '../utils/auth-ownership.js';
+import { authenticateToken } from '../utils/auth-middleware.js';
 
-// Multer configuration for file uploads
 const upload = multer({ dest: 'uploads/' });
 
 const mediaRouter = express.Router();
 
-// GET all media items or POST a new media item (with file upload)
-mediaRouter.route('/').get(getItems).post(upload.single('file'), postItem);
+mediaRouter.route('/')
+  .get(getItems)
+  .post(authenticateToken, upload.single('file'), postItem);
 
-// GET, PUT, DELETE a specific media item by ID
-mediaRouter.route('/:id').get(getItemById).put(putItem).delete(deleteItem);
+mediaRouter.route('/:id')
+  .get(getItemById)
+  .put(authenticateToken, verifyMediaOwnership, putItem) // Protected
+  .delete(authenticateToken, verifyMediaOwnership, deleteItem); // Protected
 
 export default mediaRouter;

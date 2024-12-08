@@ -6,13 +6,15 @@ import {
   putUser,
   deleteUser,
 } from '../controllers/user-controller.js';
+import { verifyUserOwnership } from '../utils/auth-ownership.js';
+import { authenticateToken } from '../utils/auth-middleware.js';
 
 const userRouter = express.Router();
 
-userRouter.get('/', getUsers); // Hakee kaikki käyttäjät
-userRouter.get('/:id', getUserById); // Hakee käyttäjän ID:n perusteella
-userRouter.post('/', postUser); // Lisää uuden käyttäjän
-userRouter.put('/:id', putUser); // Päivittää käyttäjän
-userRouter.delete('/:id', deleteUser); // Poistaa käyttäjän
+userRouter.get('/', getUsers); // Public
+userRouter.get('/:id', authenticateToken, getUserById); // Protected
+userRouter.post('/', postUser); // Public
+userRouter.put('/:id', authenticateToken, verifyUserOwnership, putUser); // Protected
+userRouter.delete('/:id', authenticateToken, verifyUserOwnership, deleteUser); // Protected
 
 export default userRouter;

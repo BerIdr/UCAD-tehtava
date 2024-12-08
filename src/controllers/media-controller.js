@@ -85,18 +85,31 @@ import promisePool from '../utils/database.js'; // Ensure the database connectio
 
 const deleteItem = async (req, res) => {
   const id = parseInt(req.params.id, 10); // Parse the media_id from the request
+  const userId = req.user?.id; // Assuming req.user is populated by the auth middleware
 
   if (isNaN(id)) {
     return res.status(400).json({ message: 'Invalid ID' });
   }
 
   try {
-    // Step 1: Delete associated comments
+    // Step 1: Verify media ownership
+    const verifyOwnershipSql = 'SELECT user_id FROM MediaItems WHERE media_id = ?';
+    const [mediaRows] = await promisePool.query(verifyOwnershipSql, [id]);
+
+    if (mediaRows.length === 0) {
+      return res.status(404).json({ message: 'Media item not found' });
+    }
+
+    if (mediaRows[0].user_id !== userId) {
+      return res.status(403).json({ message: 'You do not have permission to delete this item' });
+    }
+
+    // Step 2: Delete associated comments
     const deleteCommentsSql = 'DELETE FROM Comments WHERE media_id = ?';
     const [commentsResult] = await promisePool.query(deleteCommentsSql, [id]);
     console.log(`Deleted ${commentsResult.affectedRows} comments associated with MediaItem ID ${id}`);
 
-    // Step 2: Delete the media item
+    // Step 3: Delete the media item
     const deleteMediaSql = 'DELETE FROM MediaItems WHERE media_id = ?';
     const [mediaResult] = await promisePool.query(deleteMediaSql, [id]);
 
@@ -110,6 +123,7 @@ const deleteItem = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong: ' + error.message });
   }
 };
+
 
 
 

@@ -61,10 +61,17 @@ const putUser = async (req, res) => {
   if (isNaN(id)) {
     return res.status(400).json({message: 'Invalid ID'});
   }
+  
+  // Tarkista, onko käyttäjä oikeutettu päivittämään omia tietojaan
+  if (req.user.id !== id) {
+    return res.status(403).json({message: 'You can only update your own profile'});
+  }
+
   const {username, email} = req.body;
   if (!username || !email) {
     return res.status(400).json({message: 'Username and email are required'});
   }
+  
   try {
     const rowsUpdated = await updateUser(id, {username, email});
     if (rowsUpdated === 0) {
@@ -79,22 +86,43 @@ const putUser = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-  const {email, password} = req.body;
+  const { email, password } = req.body;
+
+  console.log('Login request body:', req.body); // Log req.body
+
   if (!email || !password) {
-    return res.status(400).json({message: 'Email and password required'});
+    return res.status(400).json({ message: 'Email and password required' });
   }
+
   try {
-    const user = await authenticateUser(email, password);
-    if (user) {
-      res.status(200).json({message: 'Login successful', user});
-    } else {
-      res.status(401).json({message: 'Invalid credentials'});
+    const user = await fetchUserByEmail(email);
+    console.log('Fetched user:', user); // Log the fetched user
+
+    if (!user) {
+      console.log('User not found'); // Log if no user is found
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
-  } catch (e) {
-    console.error('loginUser', e.message);
-    res.status(503).json({error: 503, message: e.message});
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match:', isMatch); // Log password comparison result
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ id: user.user_id, email: user.email }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
+
+    res.status(200).json({ message: 'Login successful', token });
+  } catch (error) {
+    console.error('Login error:', error.message); // Log any errors
+    res.status(500).json({ message: 'Something went wrong' });
   }
 };
+  
+
+
 
 const deleteUser = async (req, res) => {
   const id = parseInt(req.params.id, 10);
